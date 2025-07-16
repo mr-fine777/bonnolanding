@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bonno</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="img/favicon.ico" type="image/x-icon">
+  <style>
+       body {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0;
+          background-color: #40312c;
+        }
+       .emailframe {
+          margin: 0 auto;
+          width: 100%;
+          max-width: 600px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        
+        .emailbody {
+          padding: 2rem;
+          border-radius: 12px;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          color: #e3dabd;
+          margin-bottom: 20px;
+          padding-top: 0px;
+          text-align: center;
+          position: relative;
+          z-index: 10000;
+          opacity: 0;
+          transition: opacity 0.7s;
+        }
+
+        .emailheader {
+          height: 420px;
+        }
+
+        .verify-btn {
+          background-color: #6f2b32;
+          color: #e3dabd;
+          border: none;
+          padding: 10px 20px;
+          font-size: 16px;
+          cursor: pointer;
+          margin-top: 10px;
+          transition-duration: 0.4s;
+          text-decoration: none;
+          display: inline-block;
+          text-align: center;
+          border-radius: 4px;
+        }
+
+        .verify-btn:hover {
+          background-color: #40312c;
+        }
+  </style>
+</head>
+<body>
+<div id="wave-transition">
+  <svg id="wave-svg" width="100%" height="100vh" viewBox="0 0 1440 900" preserveAspectRatio="none" style="position:fixed;top:0;left:0;z-index:9999;pointer-events:none;">
+    <path id="wave-path-1" fill="#e3dabd"></path>
+    <path id="wave-path-2" fill="#40312c"></path>
+  </svg>
+</div>
+<div class="emailframe">
+    <div class="emailbody">
+        <img class="emailheader" src="img/redirect.png">
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const wave1 = document.getElementById('wave-path-1');
+  const wave2 = document.getElementById('wave-path-2');
+  const emailBody = document.querySelector('.emailbody');
+
+  let waveAmplitude = 90;
+  let waveFrequency = 2.5;
+  const svgWidth = 1440;
+  const svgHeight = 900;
+  const pointsCount = 20;
+  const waveDuration = 2.0; // seconds for a wave to cross (slower)
+  const pauseDuration = 1200; // ms to pause after each wave
+  let isTan = false; // Track which color is background
+
+  const colorA = '#e3dabd';
+  const colorB = '#40312c';
+
+  function buildSmoothWavePath(points) {
+    let d = `M0,0 L0,${points[0][1]}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const [x1, y1] = points[i];
+      const [x2, y2] = points[i + 1];
+      const cp1x = x1 + (x2 - x1) / 2;
+      const cp1y = y1;
+      const cp2x = x1 + (x2 - x1) / 2;
+      const cp2y = y2;
+      d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${x2},${y2}`;
+    }
+    d += ` L${svgWidth},0 L${svgWidth},0 L0,0 Z`;
+    return d;
+  }
+
+  function drawWave(progress, fromColor, toColor) {
+    // Start above the screen, end below the screen
+    let startY = -waveAmplitude * 2;
+    let endY = svgHeight + waveAmplitude * 2;
+    let y = startY + progress * (endY - startY);
+    let points = [];
+    for (let i = 0; i <= pointsCount; i++) {
+      let x = (i / pointsCount) * svgWidth;
+      let offset = Math.sin(progress * 2 * Math.PI + i * waveFrequency) * waveAmplitude;
+      points.push([x, y + offset]);
+    }
+    let d = buildSmoothWavePath(points);
+    wave1.setAttribute('d', d);
+    wave1.setAttribute('fill', toColor);
+    wave2.setAttribute('d', '');
+    document.body.style.background = fromColor;
+  }
+
+  function animateSingleWave(startTime, fromColor, toColor) {
+    let finished = false;
+    function frame(ts) {
+      let elapsed = (ts - startTime) / 1000;
+      let progress = Math.min(elapsed / waveDuration, 1);
+
+      drawWave(progress, fromColor, toColor);
+
+      if (progress < 1) {
+        requestAnimationFrame(frame);
+      } else if (!finished) {
+        finished = true;
+        // Keep the wave at the bottom for 0.5s, then change background and clear wave
+        setTimeout(() => {
+          document.body.style.background = toColor;
+          wave1.setAttribute('d', '');
+          // Pause, then start the next wave
+          setTimeout(() => {
+            isTan = !isTan;
+            startNextWave();
+          }, pauseDuration);
+        }, 500);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function startNextWave() {
+    if (isTan) {
+      animateSingleWave(performance.now(), colorA, colorB);
+    } else {
+      animateSingleWave(performance.now(), colorB, colorA);
+    }
+  }
+
+  // Draw the initial wave immediately so the user sees it
+  drawWave(0, colorB, colorA);
+  emailBody.style.opacity = 1;
+  startNextWave();
+});
+</script>
+ 
